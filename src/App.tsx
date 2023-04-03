@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Button from "@mui/material/Button";
@@ -12,8 +11,11 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
 
+import { WebTextSpeaker } from "./TextSpeaker";
 import { ChatBubbleOutline } from "@mui/icons-material";
 import Chat, { Bubble, useMessages } from "@chatui/core";
+import { useWhisper } from "@chengsokdara/use-whisper";
+import ReplyButton from "./ReplyButton";
 import "@chatui/core/dist/index.css";
 
 export default function App() {
@@ -22,7 +24,46 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const sendChat = async (text: string, history: string) => {
+
+  // Handle the transcription of the audio blob with custom backend
+  // This is so we don't expose our API key to the client
+  const onTranscribe = async (blob: Blob) => {
+    const file = new File([blob], 'speech.mp3', {
+      type: 'audio/mpeg',
+    })
+    const body = new FormData()
+    body.append('file', file)
+    const { default: axios } = await import("axios");
+    const headers = { "Content-Type": "multipart/form-data" };
+    const response = await axios.post("/api/whisper", body, {
+      headers,
+    });
+    const { text } = await response.data;
+    console.log('Got transcription:', text);
+    await handleSend('text', text);
+
+    return {
+      blob,
+      text,
+    };
+  };
+
+  const {
+    recording,
+    speaking,
+    transcribing,
+    transcript,
+    pauseRecording,
+    startRecording,
+    stopRecording,
+  } = useWhisper({
+    onTranscribe,
+    removeSilence: true,
+    nonStop: true,
+    stopTimeout: 5000,
+  });
+
+  const sendChat = async (text: string) => {
     let reply = "";
     try {
       setLoading(true);
@@ -43,10 +84,9 @@ export default function App() {
         content: { text: reply },
         position: "left",
       });
-      
-      // TODO: This voice seems very unnatural. Find a better one.
-      const utterance = new SpeechSynthesisUtterance(reply);
-      (window as any).speechSynthesis.speak(utterance);
+
+      const speaker = new WebTextSpeaker(reply);
+      speaker.speak();
     } catch (error: any) {
       setError(error);
     } finally {
@@ -56,7 +96,7 @@ export default function App() {
   };
 
   const handleStartButtonClick = async () => {
-    await sendChat("", "");
+    await sendChat("");
     setShowChat(true);
   };
 
@@ -69,7 +109,7 @@ export default function App() {
       });
 
       setTyping(true);
-      await sendChat(val, "");
+      await sendChat(val);
     }
   };
 
@@ -117,6 +157,9 @@ export default function App() {
                   renderMessageContent={renderMessageContent}
                   onSend={handleSend}
                 />
+              </Grid>
+              <Grid item xs={12}>
+                <ReplyButton onHold={() => startRecording() } onRelease={() => stopRecording() }/>
               </Grid>
               <Grid item xs={12}>
                 <FormControl component="fieldset">

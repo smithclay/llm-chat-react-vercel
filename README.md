@@ -1,5 +1,8 @@
 # LLM Chat
 
+![screenshot](/screenshot.png?raw=true "Screenshot")
+
+
 This is an exampleo of a React frontend that calls a simple serverless backend written in Python.
 
 ## Setup

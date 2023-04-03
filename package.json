@@ -4,8 +4,11 @@
   "private": true,
   "dependencies": {
     "@chatui/core": "^2.4.2",
+    "@chengsokdara/use-whisper": "^0.2.0",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
+    "@ffmpeg/core": "^0.11.0",
+    "@ffmpeg/ffmpeg": "^0.11.6",
     "@mui/icons-material": "^5.11.11",
     "@mui/material": "latest",
     "@types/react": "latest",
