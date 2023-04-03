@@ -20,6 +20,8 @@ logging.basicConfig(
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 
+FILE_TOO_SMALL_SIZE = 1000
+
 class handler(BaseHTTPRequestHandler):
     def transcribe(self, file):
         return openai.Audio.transcribe(model="whisper-1", file=file)
@@ -37,6 +39,15 @@ class handler(BaseHTTPRequestHandler):
             )
             
             file_field = form.getfirst('file')
+            
+            logging.info(f'Received audio file of length: {len(file_field)}')
+            if len(file_field) < FILE_TOO_SMALL_SIZE:
+                self.send_response(400)
+                self.send_header('Content-Type', 'text/plain; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(b'File too small')
+                return
+
             with open('/tmp/speech.mp3', 'wb') as f:
                 f.write(file_field)    
 

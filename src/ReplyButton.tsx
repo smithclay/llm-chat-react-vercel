@@ -7,12 +7,14 @@ interface ReplyButtonProps {
   onHold: () => void;
   onRelease: () => void;
   disabled?: boolean;
+  transcribing: boolean;
 }
 
 export default function ReplyButton({
   onHold = () => {},
   onRelease = () => {},
   disabled = false,
+  transcribing = false,
 }: ReplyButtonProps) {
   const [showProgress, setShowProgress] = useState(false);
 
@@ -40,12 +42,19 @@ export default function ReplyButton({
         width: 180,
         height: 40,
       }}
-      disabled={disabled}
+      disabled={disabled || transcribing}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleMouseDown}
+      onTouchEnd={handleMouseUp}
+      onTouchCancel={handleMouseUp}
     >
-      {showProgress ? <CircularProgress size={24} /> : "Hold to Reply"}
+      {showProgress || transcribing ? (
+        <CircularProgress size={24} />
+      ) : (
+        "Hold to Reply"
+      )}
     </Button>
   );
 }
