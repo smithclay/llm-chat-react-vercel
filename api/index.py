@@ -32,6 +32,7 @@ logging.basicConfig(
     ]
 )
 
+
 def build_prompt(template):
     """Builds a prompt template for the chatbot."""
     system_message_prompt = SystemMessagePromptTemplate.from_template(template)
@@ -57,54 +58,20 @@ PROMPT = build_prompt(_PROMPT_TEMPLATE)
 chat = ChatOpenAI(temperature=0, model='gpt-4')
 openai.api_key = os.environ['OPENAI_API_KEY']
 
+
 class handler(BaseHTTPRequestHandler):
     def get_reply(self, text, history):
         logging.info('Calling LLM...')
-        messages = PROMPT.format_prompt(history=history, text=text).to_messages()
+        messages = PROMPT.format_prompt(
+            history=history, text=text).to_messages()
         output = chat(messages)
         logging.info(f'Got LLM output: {output.content}')
         return output.content
 
-    def transcribe(self):
-        pass
-    
-    def do_POST(self):
-        o = urlparse(self.path)
-        params = parse_qs(o.query)
-        if o.path == '/api/whisper':
-            # parse base64 audio file
-            content_len = int(self.headers.get('Content-Length'))
-            post_body = self.rfile.read(content_len)
-            req_json = json.loads(post_body)
-            file_base64 = req_json['file']
-            # create file from base64 string
-            decoded_bytes = base64.b64decode(base64_string)
-
-            # Create file object from decoded bytes
-            file_object = open('file.txt', 'wb')
-            file_object.write(decoded_bytes)
-            file_object.close()
-
-            logging.info(f'Transcribing audio file...')
-            transcript = openai.Audio.transcribe(model="whisper-1", file=file_object)
-            logging.info(f'Got transcript: {json.dumps(transcript)}')
-            
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            json_string = json.dumps(transcript)
-            self.wfile.write(json_string.encode('utf-8'))
-        else:
-            logging.info(f'Path not found: {o.path}')
-            self.send_response(404)
-            self.wfile.write('not found'.encode('utf-8'))
-            self.end_headers()
-        return    
-    
     def do_GET(self):
         o = urlparse(self.path)
         params = parse_qs(o.query)
-        
+
         logging.info(f'Got GET request: {o.path}')
         if o.path == '/api':
             text = '' if 'text' not in params else params['text'][0]
@@ -113,11 +80,11 @@ class handler(BaseHTTPRequestHandler):
             logging.info(f'Got query params: {params}')
 
             reply = self.get_reply(text, history)
-            
+
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
-            self.end_headers()       
-            self.wfile.write(reply.encode('utf-8'))     
+            self.end_headers()
+            self.wfile.write(reply.encode('utf-8'))
         else:
             logging.info(f'Path not found: {o.path}')
             self.send_response(404)
