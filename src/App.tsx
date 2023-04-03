@@ -185,6 +185,7 @@ export default function App() {
                   onHold={startRecording}
                   onRelease={stopRecording}
                 />
+                <Button sx={{marginLeft: '12px'}} onClick={() => { setShowChat(false) }}>End Chat</Button>
               </Grid>
 
               <Grid item xs={12}>
