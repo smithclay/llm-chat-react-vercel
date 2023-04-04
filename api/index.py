@@ -7,7 +7,6 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
 from langchain.chat_models import ChatOpenAI
-from langchain import PromptTemplate, LLMChain
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -49,20 +48,23 @@ def build_prompt(template):
 def format_history(self, history):
     """Formats the history for the prompt."""
     output = ""
-    for chat in history:
-        human, system = chat
+    for dialogue in history:
+        human, system = dialogue
         output = output + f"Human: {human}\nSystem: {system}\n"
     return output
 
 
 PROMPT = build_prompt(_PROMPT_TEMPLATE)
 
-chat = ChatOpenAI(temperature=0, model='gpt-4')
+# Set to gpt-4 if you have access to it.
+model_type = os.getenv('OPENAI_API_MODEL', 'gpt-3.5-turbo')
+chat = ChatOpenAI(temperature=0, model=model_type)
 openai.api_key = os.environ['OPENAI_API_KEY']
-
+logging.info(f'Using model: {model_type}')
 
 class handler(BaseHTTPRequestHandler):
     def get_reply(self, text, history):
+        """Gets a reply from the chatbot."""
         logging.info('Calling LLM...')
         messages = PROMPT.format_prompt(
             history=history, text=text).to_messages()
@@ -71,6 +73,7 @@ class handler(BaseHTTPRequestHandler):
         return output.content
 
     def do_GET(self):
+        """Handles GET requests."""
         o = urlparse(self.path)
         params = parse_qs(o.query)
 

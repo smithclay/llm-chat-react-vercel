@@ -11,7 +11,8 @@ The backend automatically gets deployed to appropraite endpoint if using [Vercel
 
 ## Setup
 
-* You will need an OpenAI API token set to the `OPENAI_API_KEY` environment variable. This app uses the GPT-4 model.
+* You will need an OpenAI API token set to the `OPENAI_API_KEY` env variable. This app uses the GPT-4 model.
+* If have `gpt-4` API access, set the `OPENAI_API_MODEL` env var to `gpt-4`, otherwise it will use `gpt-3.5-turbo`.
 
 ```bash
 npm install

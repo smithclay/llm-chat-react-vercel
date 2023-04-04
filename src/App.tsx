@@ -13,7 +13,7 @@ import {
   FormLabel,
 } from "@mui/material";
 
-import { ChatBubbleOutline } from "@mui/icons-material";
+import { ChatBubbleOutline, LocalConvenienceStoreOutlined } from "@mui/icons-material";
 import Chat, { Bubble, useMessages } from "@chatui/core";
 import { useWhisper } from "@chengsokdara/use-whisper";
 import ReplyButton from "./ReplyButton";
@@ -22,6 +22,7 @@ import "@chatui/core/dist/index.css";
 
 export default function App() {
   const { messages, appendMsg, setTyping } = useMessages([]);
+  const [speakResponse, setSpeakResponse] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,7 +45,7 @@ export default function App() {
       const { text } = await response.data;
       console.log("Got transcription:", text);
       await handleSend("text", text);
-  
+
       return {
         blob,
         text,
@@ -54,7 +55,7 @@ export default function App() {
     }
     return {
       blob,
-      text: ""
+      text: "",
     };
   };
 
@@ -97,7 +98,9 @@ export default function App() {
       });
 
       const speaker = new WebTextSpeaker(reply);
-      speaker.speak();
+      if (speakResponse) {
+        speaker.speak();
+      }
     } catch (error: any) {
       setError(error);
     } finally {
@@ -185,7 +188,14 @@ export default function App() {
                   onHold={startRecording}
                   onRelease={stopRecording}
                 />
-                <Button sx={{marginLeft: '12px'}} onClick={() => { setShowChat(false) }}>End Chat</Button>
+                <Button
+                  sx={{ marginLeft: "12px" }}
+                  onClick={() => {
+                    setShowChat(false);
+                  }}
+                >
+                  End Chat
+                </Button>
               </Grid>
 
               <Grid item xs={12}>
@@ -194,7 +204,14 @@ export default function App() {
 
                   <FormGroup row aria-label="position">
                     <FormControlLabel
-                      control={<Checkbox defaultChecked />}
+                      control={
+                        <Checkbox
+                          checked={speakResponse}
+                          onChange={(e) => {
+                            setSpeakResponse(e.target.checked);
+                          }}
+                        />
+                      }
                       label="Speak responses"
                       labelPlacement="end"
                       value="speak"
