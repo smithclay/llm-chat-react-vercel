@@ -1,18 +1,17 @@
 class TextSpeaker {
-  protected text: string;
 
-  constructor(text: string) {
-    this.text = text;
+  constructor() {
   }
 
-  public async speak(): Promise<void>  {
-    console.log(this.text);
+  public async speak(text: string): Promise<void>  {
+    console.log(text);
   }
 }
 
 export class WebTextSpeaker extends TextSpeaker {
-  public async speak(): Promise<void>  {
-    const utterance = new SpeechSynthesisUtterance(this.text);
+  public async speak(text: string): Promise<void>  {
+    const utterance = new SpeechSynthesisUtterance(text);
     (window as any).speechSynthesis.speak(utterance);
   }
 }
+

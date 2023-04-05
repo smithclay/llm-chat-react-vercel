@@ -6,18 +6,20 @@ import {
   Toolbar,
   Button,
   Grid,
-  Checkbox,
-  FormGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
+  Alert,
 } from "@mui/material";
 
-import { ChatBubbleOutline, LocalConvenienceStoreOutlined } from "@mui/icons-material";
 import Chat, { Bubble, useMessages } from "@chatui/core";
 import { useWhisper } from "@chengsokdara/use-whisper";
-import ReplyButton from "./ReplyButton";
 import { WebTextSpeaker } from "./TextSpeaker";
+
+import BeginChat from "./components/BeginChat";
+import ChatOptions from "./components/ChatOptions";
+import ReplyButton from "./components/ReplyButton";
+
+import fetchReply from "./utils/fetchReply";
+import handleVoiceUpload from "./utils/handleVoiceUpload";
+
 import "@chatui/core/dist/index.css";
 
 export default function App() {
@@ -25,33 +27,23 @@ export default function App() {
   const [speakResponse, setSpeakResponse] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   // Handle the transcription of the audio blob with custom backend
   // This is so we don't expose our API key to the client
   const onTranscribe = async (blob: Blob) => {
-    const file = new File([blob], "speech.mp3", {
-      type: "audio/mpeg",
-    });
-    const body = new FormData();
-    body.append("file", file);
-    const { default: axios } = await import("axios");
-    const headers = { "Content-Type": "multipart/form-data" };
     try {
-      const response = await axios.post("/api/whisper", body, { headers });
-      if (response.status !== 200) {
-        throw new Error(`Request failed with status code ${response.status}`);
-      }
-      const { text } = await response.data;
-      console.log("Got transcription:", text);
-      await handleSend("text", text);
+      const transcribedText = await handleVoiceUpload(blob);
+      console.log("Got transcription:", transcribedText);
+      await handleSend("text", transcribedText);
 
       return {
         blob,
-        text,
+        transcribedText,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setError("There was an error processing your voice. Try again.");
     }
     return {
       blob,
@@ -73,34 +65,32 @@ export default function App() {
     nonStop: false,
   });
 
+  const addSystemReply = (reply: string) => {
+    appendMsg({
+      type: "text",
+      content: { text: reply },
+      position: "left",
+    });
+    speaker.speak(reply);
+  };
+
+  const addHumanReply = (reply: string) => {
+    appendMsg({
+      type: "text",
+      content: { text: reply },
+      position: "right",
+    });
+  };
+
+  const speaker = new WebTextSpeaker();
+
   const sendChat = async (text: string): Promise<string> => {
     let reply = "";
 
     try {
       setLoading(true);
-
-      const history = messages.map((message) => {
-        const author = message.position === "left" ? "System" : "Human";
-        return `${author}: ${message.content.text}`;
-      });
-
-      const historyEncoded = encodeURIComponent(history.join("\n"));
-      const textEncoded = encodeURIComponent(text);
-      const url = `/api?text=${textEncoded}&history=${historyEncoded}`;
-
-      const response = await fetch(url);
-      reply = await response.text();
-
-      appendMsg({
-        type: "text",
-        content: { text: reply },
-        position: "left",
-      });
-
-      const speaker = new WebTextSpeaker(reply);
-      if (speakResponse) {
-        speaker.speak();
-      }
+      const reply = await fetchReply(messages, text);
+      addSystemReply(reply);
     } catch (error: any) {
       setError(error);
     } finally {
@@ -117,11 +107,7 @@ export default function App() {
 
   const handleSend = async (type: string, val: string) => {
     if (type === "text" && val.trim()) {
-      appendMsg({
-        type: "text",
-        content: { text: val },
-        position: "right",
-      });
+      addHumanReply(val);
 
       setTyping(true);
       await sendChat(val);
@@ -144,31 +130,16 @@ export default function App() {
       <Container maxWidth="sm">
         <Grid container spacing={2} sx={{ my: 4 }}>
           {!showChat && (
-            <>
-              <Grid item xs={12}>
-                <Typography variant="h6">
-                  Click the button to start a chat with a LLM bot.
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  startIcon={<ChatBubbleOutline />}
-                  disabled={loading}
-                  onClick={handleStartButtonClick}
-                >
-                  {loading ? "Loading..." : "Start Chat"}
-                </Button>
-              </Grid>
-            </>
+            <Grid item xs={12}>
+              <BeginChat loading={loading} onClick={handleStartButtonClick} />
+            </Grid>
           )}
 
           {showChat && (
             <>
               {error && (
                 <Grid item xs={12}>
-                  <Typography variant="h6">Error: {error}</Typography>
+                  <Alert severity="error">Error: {error}</Alert>
                 </Grid>
               )}
 
@@ -199,25 +170,10 @@ export default function App() {
               </Grid>
 
               <Grid item xs={12}>
-                <FormControl component="fieldset">
-                  <FormLabel component="legend">Options</FormLabel>
-
-                  <FormGroup row aria-label="position">
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={speakResponse}
-                          onChange={(e) => {
-                            setSpeakResponse(e.target.checked);
-                          }}
-                        />
-                      }
-                      label="Speak responses"
-                      labelPlacement="end"
-                      value="speak"
-                    />
-                  </FormGroup>
-                </FormControl>
+                <ChatOptions
+                  speakResponse={speakResponse}
+                  onSpeakResponseChecked={setSpeakResponse}
+                />
               </Grid>
             </>
           )}
