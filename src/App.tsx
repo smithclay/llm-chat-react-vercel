@@ -11,7 +11,7 @@ import {
 
 import Chat, { Bubble, useMessages } from "@chatui/core";
 import { useWhisper } from "@chengsokdara/use-whisper";
-import { WebTextSpeaker } from "./TextSpeaker";
+import { ElevenLabsTextSpeaker, WebTextSpeaker } from "./TextSpeaker";
 
 import BeginChat from "./components/BeginChat";
 import ChatOptions from "./components/ChatOptions";
@@ -83,6 +83,7 @@ export default function App() {
   };
 
   const speaker = new WebTextSpeaker();
+  const elevenSpeaker = new ElevenLabsTextSpeaker();
 
   const sendChat = async (text: string): Promise<string> => {
     let reply = "";
