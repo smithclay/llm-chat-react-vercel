@@ -1,7 +1,11 @@
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import React, { useState, useRef } from "react";
+
+import {
+  Button,
+  CircularProgress
+} from "@mui/material";
+
 import { KeyboardVoiceOutlined } from "@mui/icons-material";
-import React, { useState } from "react";
 
 interface ReplyButtonProps {
   onHold: () => void;
@@ -11,21 +15,28 @@ interface ReplyButtonProps {
 }
 
 export default function ReplyButton({
-  onHold = () => {},
-  onRelease = () => {},
+  onHold,
+  onRelease,
   disabled = false,
   transcribing = false,
 }: ReplyButtonProps) {
   const [showProgress, setShowProgress] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const handleMouseDown = () => {
+  const handlePressStart = () => {
     if (!disabled) {
-      onHold();
-      setShowProgress(true);
+      timeoutRef.current = setTimeout(() => {
+        setShowProgress(true);
+        onHold();
+      }, 500);
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePressEnd = () => {
+    if (timeoutRef.current !== undefined) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
     if (showProgress) {
       setShowProgress(false);
       onRelease();
@@ -43,14 +54,16 @@ export default function ReplyButton({
         height: 40,
       }}
       disabled={disabled || transcribing}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleMouseDown}
-      onTouchEnd={handleMouseUp}
-      onTouchCancel={handleMouseUp}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+      onTouchCancel={handlePressEnd}
     >
-      {showProgress || transcribing ? (
+      {transcribing ? (
+        "Transcribing..."
+      ) : showProgress ? (
         <CircularProgress size={24} />
       ) : (
         "Hold to Reply"
