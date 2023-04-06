@@ -16,7 +16,8 @@
     "react": "latest",
     "react-dom": "latest",
     "react-scripts": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "use-long-press": "^2.0.3"
   },
   "scripts": {
     "start": "react-scripts start",

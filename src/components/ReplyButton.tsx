@@ -1,15 +1,17 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useCallback } from "react";
 
 import {
   Button,
   CircularProgress
 } from "@mui/material";
 
+import { useLongPress, LongPressDetectEvents } from "use-long-press";
 import { KeyboardVoiceOutlined } from "@mui/icons-material";
 
 interface ReplyButtonProps {
   onHold: () => void;
   onRelease: () => void;
+  onCancel: () => void;
   disabled?: boolean;
   transcribing: boolean;
 }
@@ -17,34 +19,31 @@ interface ReplyButtonProps {
 export default function ReplyButton({
   onHold,
   onRelease,
+  onCancel,
   disabled = false,
   transcribing = false,
 }: ReplyButtonProps) {
-  const [showProgress, setShowProgress] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [recording, setRecording] = useState(false);
 
-  const handlePressStart = () => {
-    if (!disabled) {
-      timeoutRef.current = setTimeout(() => {
-        setShowProgress(true);
-        onHold();
-      }, 500);
-    }
-  };
-
-  const handlePressEnd = () => {
-    if (timeoutRef.current !== undefined) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = undefined;
-    }
-    if (showProgress) {
-      setShowProgress(false);
-      onRelease();
-    }
-  };
+  const callback = React.useCallback(() => {
+    setRecording(true);
+    onHold();
+  }, []);
+  const bind = useLongPress(callback, {
+    //onStart: onHold,
+    onFinish: () => { setRecording(false); onRelease(); },
+    onCancel: () => { setRecording(false); onCancel(); } ,
+    //onMove: () => console.log("Detected mouse or touch movement"),
+    filterEvents: () => true, // All events can potentially trigger long press
+    threshold: 500,
+    captureEvent: true,
+    cancelOnMovement: false,
+    detect: LongPressDetectEvents.BOTH
+  });
 
   return (
     <Button
+      {...bind("record")}
       variant="contained"
       color="primary"
       startIcon={<KeyboardVoiceOutlined />}
@@ -54,20 +53,8 @@ export default function ReplyButton({
         height: 40,
       }}
       disabled={disabled || transcribing}
-      onMouseDown={handlePressStart}
-      onMouseUp={handlePressEnd}
-      onMouseLeave={handlePressEnd}
-      onTouchStart={handlePressStart}
-      onTouchEnd={handlePressEnd}
-      onTouchCancel={handlePressEnd}
     >
-      {transcribing ? (
-        "Transcribing..."
-      ) : showProgress ? (
-        <CircularProgress size={24} />
-      ) : (
-        "Hold to Reply"
-      )}
+      {transcribing ? 'Transcribing...' : (recording ? 'Recording...' : 'Hold to Reply')}
     </Button>
   );
 }

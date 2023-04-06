@@ -159,6 +159,7 @@ export default function App() {
                   transcribing={transcribing}
                   onHold={startRecording}
                   onRelease={stopRecording}
+                  onCancel={pauseRecording}
                 />
                 <Button
                   sx={{ marginLeft: "12px" }}
